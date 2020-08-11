@@ -1,9 +1,9 @@
 # CeleryWithDjango
-A tutorial for setup the asynchronous task in the django server using celery with redis as task manager 
+A tutorial for setup the asynchronous task in the django server using celery with kafka as task manager 
 
 First thing first, need to do the setup for the project. Below installations are required for setting up the project
 1. Python Environment
-2. redis
+2. Apache Kafka
 
 I am using Anaconda for setting up the project, install below packages to the anaconda environment. [Transport and Backend](https://docs.celeryproject.org/en/latest/getting-started/introduction.html#transports-and-backends) configurations for celery can be found here.
 ```
@@ -11,12 +11,18 @@ conda install django==2.2
 conda install -c conda-forge djangorestframework
 pip install celery
 pip install celery[django]
-pip install celery[redis]
+pip install celery[zookeeper]
 ```
 
-Redis for [windows](https://docs.microsoft.com/en-us/archive/blogs/interoperability/redis-on-windows-stable-and-reliable) is not available on redis website. [linux](https://redis.io/download) version is available.
+By the time I write this tutorial, Zookeeper is required for running Kafka. <br/>
 
-Once redis is installed then the command `redis-cli ping` should return `PONG`
+**Note**:
+* Celery had [zookeeper](https://docs.celeryproject.org/en/latest/getting-started/brokers/#broker-overview) as an experimental broker. 
+* Experimental brokers may be functional but they don’t have dedicated maintainers.
+* Neither monitoring nor Remote control support is available for Zookeeper broker.
+* This makes some of the functionalities may not be supported.
+
+Install and run Zookeeper and Kafka
 
 
 In this tutorial I am setting up a new django project and app (as this is not the django tutorial I am not explaining django here).
@@ -108,12 +114,16 @@ Now lets make this larger/time consuming process as asynchronous, so it will run
 
 ## Step3: Adding celery config
 
-Since we haven't started the broker with the celery like `app = Celery('CeleryAsyncTaskForDjango', broker='redis://127.0.0.1:6379/')`, we need to configure the settings. we can adjust these setting in settings.py file
+Since we haven't started the broker with the celery like `app = Celery('CeleryAsyncTaskForDjango', broker='zookeeper://127.0.0.1:2181/')`, we need to configure the settings. we can adjust these setting in settings.py file
 
-**Note** : We have used the `namespace='CELERY'` for the config, so we need to define all the config using `CELERY_`
+**Note** : 
+* We have used the `namespace='CELERY'` for the config, so we need to define all the config using `CELERY_`
+* `CELERY_RESULT_BACKEND` with zookeeper is throwing `ModuleNotFoundError: No module named 'zookeeper'`, since zookeeper doesn't supported for `results_backend`.
+* Here I have used FileSystem as backend to store the results. You can choose any from [here](https://docs.celeryproject.org/en/stable/userguide/configuration.html#task-result-backend-settings)
 ```python
-CELERY_BROKER_URL = "redis://localhost:6379"
-CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_BROKER_URL = "zookeeper://localhost:2181"
+# CELERY_RESULT_BACKEND = "zookeeper://localhost:2181"
+CELERY_RESULT_BACKEND = 'file://./'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -159,9 +169,9 @@ celery -A CeleryAsyncTaskForDjango worker -l info
 once the worker starts, we will see the output like below
 ```
 - ** ---------- [config]
-- ** ---------- .> app:         CeleryAsyncTaskForDjango:0x21d59b84358
-- ** ---------- .> transport:   redis://localhost:6379//
-- ** ---------- .> results:     redis://localhost:6379/
+- ** ---------- .> app:         CeleryAsyncTaskForDjango:0x16d2109c8d0
+- ** ---------- .> transport:   zookeeper://localhost:2181//
+- ** ---------- .> results:     disabled://
 - *** --- * --- .> concurrency: 4 (prefork)
 -- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
 --- ***** -----
@@ -178,17 +188,17 @@ once the worker starts, we will see the output like below
  Response from api
  ```json
 {
-    "Request time": "2020-08-10T19:03:18.852483Z",
-    "Response time": "2020-08-10T19:03:25.318374Z"
+    "Request time": "2020-08-11T16:38:02.746188Z",
+    "Response time": "2020-08-11T16:38:03.181972Z"
 }
  ```
 Log in the output.txt which is generated from the celery worker
 ```
-task started: 2020-08-10 19:03:25.326371+00:00
-task finished: 2020-08-10 19:03:35.334847+00:00
+task started: 2020-08-11 16:38:03.272924+00:00
+task finished: 2020-08-11 16:38:13.273846+00:00
 ```
 
-So we achieved the asynchronous processing in Django using celery with redis as backend.
+So we achieved the asynchronous processing in Django using celery with kafka as backend.
 
 Finally project tree is like below
 ```
