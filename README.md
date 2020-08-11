@@ -1,7 +1,25 @@
 # CeleryWithDjango
 A tutorial for setup the asynchronous task in the django server using celery with redis as task manager 
 
-In this tutorial I am setting up an empty project and app (as this is not the django tutorial I am not explaining django here).
+First thing first, need to do the setup for the project. Below installations are required for setting up the project
+1. Python Environment
+2. redis
+
+I am using Anaconda for setting up the project, install below packages to the anaconda environment. [Transport and Backend](https://docs.celeryproject.org/en/latest/getting-started/introduction.html#transports-and-backends) configurations for celery can be found here.
+```
+conda install django==2.2
+conda install -c conda-forge djangorestframework
+pip install celery
+pip install celery[django]
+pip install celery[redis]
+```
+
+Redis for [windows](https://docs.microsoft.com/en-us/archive/blogs/interoperability/redis-on-windows-stable-and-reliable) is not available on redis website. [linux](https://redis.io/download) version is available.
+
+Once redis is installed then the command `redis-cli ping` should return `PONG`
+
+
+In this tutorial I am setting up a new django project and app (as this is not the django tutorial I am not explaining django here).
 
 The project structure is like below
 ```
@@ -164,13 +182,13 @@ once the worker starts, we will see the output like below
     "Response time": "2020-08-10T19:03:25.318374Z"
 }
  ```
-Log in the output.txt
+Log in the output.txt which is generated from the celery worker
 ```
 task started: 2020-08-10 19:03:25.326371+00:00
 task finished: 2020-08-10 19:03:35.334847+00:00
 ```
 
-So we achieved the asynchronous process in Django using celery with redis as backend
+So we achieved the asynchronous processing in Django using celery with redis as backend.
 
 Finally project tree is like below
 ```
@@ -198,3 +216,6 @@ Finally project tree is like below
     │   __init__.py
 
 ```
+
+Some of few common errors<br/>
+[TypeError: config_from_object() got an unexpected keyword argument 'namespace'](https://stackoverflow.com/questions/54834228/how-to-solve-the-a-celery-worker-configuration-with-keyword-argument-namespace)
